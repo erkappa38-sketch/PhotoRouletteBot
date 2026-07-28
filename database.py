@@ -4,18 +4,31 @@ import sqlite3
 DB = "photos.db"
 
 
+def connect():
+    return sqlite3.connect(DB)
+
+
+
 def init_db():
 
-    conn = sqlite3.connect(DB)
-
+    conn = connect()
     cur = conn.cursor()
 
     cur.execute("""
-    CREATE TABLE IF NOT EXISTS photos (
+    CREATE TABLE IF NOT EXISTS challenges (
+
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER NOT NULL,
-        photo TEXT NOT NULL,
-        lang TEXT DEFAULT 'en'
+
+        creator_id INTEGER NOT NULL,
+
+        original_photo TEXT NOT NULL,
+
+        challenger_id INTEGER,
+
+        reply_photo TEXT,
+
+        status TEXT DEFAULT 'waiting'
+
     )
     """)
 
@@ -24,18 +37,30 @@ def init_db():
 
 
 
-def add_photo(user_id, photo, lang):
+# salva la foto iniziale della sfida
 
-    conn = sqlite3.connect(DB)
+def add_challenge(
+    creator_id,
+    photo_id
+):
 
+    conn = connect()
     cur = conn.cursor()
 
     cur.execute(
         """
-        INSERT INTO photos(user_id, photo, lang)
-        VALUES (?, ?, ?)
+        INSERT INTO challenges
+        (
+            creator_id,
+            original_photo
+        )
+
+        VALUES (?,?)
         """,
-        (user_id, photo, lang)
+        (
+            creator_id,
+            photo_id
+        )
     )
 
     conn.commit()
@@ -43,22 +68,32 @@ def add_photo(user_id, photo, lang):
 
 
 
-def get_match(user_id):
+# cerca una sfida disponibile
 
-    conn = sqlite3.connect(DB)
+def find_challenge(user_id):
 
+    conn = connect()
     cur = conn.cursor()
 
     cur.execute(
         """
-        SELECT id, user_id, photo, lang
-        FROM photos
-        WHERE user_id != ?
+        SELECT
+            id,
+            creator_id,
+            original_photo
+
+        FROM challenges
+
+        WHERE status='waiting'
+        AND creator_id != ?
+
         ORDER BY RANDOM()
+
         LIMIT 1
         """,
         (user_id,)
     )
+
 
     result = cur.fetchone()
 
@@ -68,16 +103,105 @@ def get_match(user_id):
 
 
 
-def delete_photo(photo_id):
+# assegna la sfida a un utente
 
-    conn = sqlite3.connect(DB)
+def assign_challenge(
+    challenge_id,
+    challenger_id
+):
 
+    conn = connect()
     cur = conn.cursor()
 
     cur.execute(
-        "DELETE FROM photos WHERE id=?",
-        (photo_id,)
+        """
+        UPDATE challenges
+
+        SET challenger_id=?,
+            status='playing'
+
+        WHERE id=?
+
+        """,
+        (
+            challenger_id,
+            challenge_id
+        )
     )
 
     conn.commit()
     conn.close()
+
+
+
+# salva la foto risposta
+
+def save_reply(
+    user_id,
+    photo_id
+):
+
+    conn = connect()
+    cur = conn.cursor()
+
+
+    cur.execute(
+        """
+        UPDATE challenges
+
+        SET reply_photo=?,
+            status='completed'
+
+        WHERE challenger_id=?
+
+        """,
+        (
+            photo_id,
+            user_id
+        )
+    )
+
+
+    conn.commit()
+    conn.close()
+
+
+
+# recupera la sfida completa
+
+def get_completed(
+    user_id
+):
+
+    conn = connect()
+    cur = conn.cursor()
+
+
+    cur.execute(
+        """
+        SELECT
+
+        creator_id,
+        original_photo,
+        reply_photo
+
+        FROM challenges
+
+        WHERE challenger_id=?
+
+        AND status='completed'
+
+        ORDER BY id DESC
+
+        LIMIT 1
+
+        """,
+        (user_id,)
+    )
+
+
+    result = cur.fetchone()
+
+    conn.close()
+
+    return result
