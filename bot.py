@@ -12,6 +12,8 @@ from telegram.ext import (
 TOKEN = os.getenv("BOT_TOKEN")
 
 waiting_users = []
+matched_users = {}
+photos = {}
 
 
 keyboard = [
@@ -44,6 +46,9 @@ async def roulette(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if len(waiting_users) >= 2:
         user1 = waiting_users.pop(0)
         user2 = waiting_users.pop(0)
+matched_users[user1] = user2
+matched_users[user2] = user1
+        
 
         # sicurezza: mai abbinare la stessa persona
         if user1 == user2:
@@ -67,9 +72,41 @@ async def roulette(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "📸 Foto ricevuta! La roulette è pronta."
-    )
+
+    user_id = update.message.chat_id
+    photo = update.message.photo[-1].file_id
+
+    photos[user_id] = photo
+
+    if user_id not in matched_users:
+        await update.message.reply_text(
+            "📸 Foto ricevuta! Prima entra nella roulette 🎲"
+        )
+        return
+
+    other_user = matched_users[user_id]
+
+    if other_user in photos:
+
+        await context.bot.send_photo(
+            chat_id=user_id,
+            photo=photos[other_user],
+            caption="🎲 Ecco la foto del tuo abbinamento!"
+        )
+
+        await context.bot.send_photo(
+            chat_id=other_user,
+            photo=photos[user_id],
+            caption="🎲 Ecco la foto del tuo abbinamento!"
+        )
+
+        del photos[user_id]
+        del photos[other_user]
+
+    else:
+        await update.message.reply_text(
+            "📸 Foto salvata! Aspetto l'altra persona..."
+        )
 
 
 def main():
