@@ -1,16 +1,19 @@
-from PIL import Image, ImageDraw
+from PIL import Image
 import io
-from telegram import Bot
 
 
-async def create_collage(bot: Bot, photo1, photo2):
+
+async def create_collage(bot, photo1, photo2):
+
 
     file1 = await bot.get_file(photo1)
     file2 = await bot.get_file(photo2)
 
 
+
     img1_bytes = await file1.download_as_bytearray()
     img2_bytes = await file2.download_as_bytearray()
+
 
 
     img1 = Image.open(
@@ -23,12 +26,12 @@ async def create_collage(bot: Bot, photo1, photo2):
     ).convert("RGB")
 
 
-    # stessa altezza
 
     height = min(
         img1.height,
         img2.height
     )
+
 
 
     img1.thumbnail(
@@ -47,13 +50,11 @@ async def create_collage(bot: Bot, photo1, photo2):
     )
 
 
-    width = img1.width + img2.width
-
 
     collage = Image.new(
         "RGB",
         (
-            width,
+            img1.width + img2.width,
             height
         ),
         "white"
@@ -75,12 +76,13 @@ async def create_collage(bot: Bot, photo1, photo2):
     )
 
 
+
     output = io.BytesIO()
 
 
     collage.save(
         output,
-        format="JPEG"
+        "JPEG"
     )
 
 
