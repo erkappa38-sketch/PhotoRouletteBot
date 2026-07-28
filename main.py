@@ -1,7 +1,9 @@
-from bot import app_web
+import os
+import asyncio
+from bot import app_web, setup
 
 if __name__ == "__main__":
-    import os
+    asyncio.run(setup())
 
     port = int(os.environ.get("PORT", 10000))
 
