@@ -36,16 +36,25 @@ def init_db():
     """)
 
 
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS gallery (
+
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+        collage_photo TEXT NOT NULL
+
+    )
+    """)
+
+
     conn.commit()
     conn.close()
 
 
 
 
-def add_challenge(
-    user_id,
-    photo
-):
+
+def add_challenge(user_id, photo):
 
     conn = connect()
     cur = conn.cursor()
@@ -60,6 +69,7 @@ def add_challenge(
         )
 
         VALUES (?,?)
+
         """,
         (
             user_id,
@@ -70,6 +80,7 @@ def add_challenge(
 
     conn.commit()
     conn.close()
+
 
 
 
@@ -112,10 +123,7 @@ def find_challenge(user_id):
 
 
 
-def assign_challenge(
-    challenge_id,
-    user_id
-):
+def assign_challenge(challenge_id, user_id):
 
     conn = connect()
     cur = conn.cursor()
@@ -144,6 +152,7 @@ def assign_challenge(
 
 
 
+
 def get_active_challenge(user_id):
 
     conn = connect()
@@ -153,6 +162,7 @@ def get_active_challenge(user_id):
     cur.execute(
         """
         SELECT
+
             id,
             creator_id,
             original_photo
@@ -160,9 +170,8 @@ def get_active_challenge(user_id):
         FROM challenges
 
         WHERE challenger_id=?
-        AND status='playing'
 
-        ORDER BY id DESC
+        AND status='playing'
 
         LIMIT 1
 
@@ -182,10 +191,7 @@ def get_active_challenge(user_id):
 
 
 
-def save_reply(
-    challenge_id,
-    photo
-):
+def save_reply(challenge_id, photo):
 
     conn = connect()
     cur = conn.cursor()
@@ -210,3 +216,61 @@ def save_reply(
 
     conn.commit()
     conn.close()
+
+
+
+
+
+def add_to_gallery(photo):
+
+    conn = connect()
+    cur = conn.cursor()
+
+
+    cur.execute(
+        """
+        INSERT INTO gallery
+        (
+            collage_photo
+        )
+
+        VALUES (?)
+
+        """,
+        (photo,)
+    )
+
+
+    conn.commit()
+    conn.close()
+
+
+
+
+
+def get_gallery():
+
+    conn = connect()
+    cur = conn.cursor()
+
+
+    cur.execute(
+        """
+        SELECT collage_photo
+
+        FROM gallery
+
+        ORDER BY id DESC
+
+        LIMIT 10
+
+        """
+    )
+
+
+    result = cur.fetchall()
+
+
+    conn.close()
+
+    return result
