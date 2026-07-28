@@ -33,21 +33,31 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def roulette(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.message.chat_id
 
-    if user_id not in waiting_users:
-        waiting_users.append(user_id)
+    if user_id in waiting_users:
+        await update.message.reply_text(
+            "⏳ Sei già in attesa di un'altra persona."
+        )
+        return
+
+    waiting_users.append(user_id)
 
     if len(waiting_users) >= 2:
         user1 = waiting_users.pop(0)
         user2 = waiting_users.pop(0)
 
+        # sicurezza: mai abbinare la stessa persona
+        if user1 == user2:
+            waiting_users.insert(0, user1)
+            return
+
         await context.bot.send_message(
             user1,
-            "🎲 Sei stato abbinato! Invia ora una foto."
+            "🎲 Sei stato abbinato! Ora invia una foto."
         )
 
         await context.bot.send_message(
             user2,
-            "🎲 Sei stato abbinato! Invia ora una foto."
+            "🎲 Sei stato abbinato! Ora invia una foto."
         )
 
     else:
