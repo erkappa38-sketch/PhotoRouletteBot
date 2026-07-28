@@ -1,28 +1,52 @@
 import os
-import asyncio
+from flask import Flask, request
 from telegram import Update
-from telegram.ext import Application, CommandHandler, ContextTypes
+from telegram.ext import Application, CommandHandler
 
 TOKEN = os.getenv("BOT_TOKEN")
+PORT = int(os.getenv("PORT", 10000))
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+app_web = Flask(__name__)
+
+telegram_app = Application.builder().token(TOKEN).build()
+
+
+async def start(update, context):
     await update.message.reply_text(
         "📸 Benvenuto su PhotoRoulette!\n\n"
-        "🎲 Cerca una persona casuale e scambia immagini in modo anonimo."
+        "🎲 Roulette fotografica anonima in arrivo!"
     )
 
-async def run_bot():
-    app = Application.builder().token(TOKEN).build()
 
-    app.add_handler(CommandHandler("start", start))
+telegram_app.add_handler(CommandHandler("start", start))
 
-    print("Bot avviato...")
 
-    await app.initialize()
-    await app.start()
-    await app.updater.start_polling()
+@app_web.route("/", methods=["GET"])
+def home():
+    return "PhotoRoulette Bot OK"
 
-    await asyncio.Event().wait()
+
+@app_web.route("/webhook", methods=["POST"])
+async def webhook():
+    data = request.get_json(force=True)
+    update = Update.de_json(data, telegram_app.bot)
+    await telegram_app.process_update(update)
+    return "ok"
+
 
 if __name__ == "__main__":
-    asyncio.run(run_bot())
+    import asyncio
+
+    asyncio.run(telegram_app.initialize())
+
+    webhook_url = os.getenv("WEBHOOK_URL")
+    asyncio.run(
+        telegram_app.bot.set_webhook(
+            webhook_url + "/webhook"
+        )
+    )
+
+    app_web.run(
+        host="0.0.0.0",
+        port=PORT
+    )
