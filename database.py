@@ -4,8 +4,10 @@ import sqlite3
 DB = "photos.db"
 
 
+
 def connect():
     return sqlite3.connect(DB)
+
 
 
 
@@ -13,6 +15,7 @@ def init_db():
 
     conn = connect()
     cur = conn.cursor()
+
 
     cur.execute("""
     CREATE TABLE IF NOT EXISTS challenges (
@@ -32,20 +35,21 @@ def init_db():
     )
     """)
 
+
     conn.commit()
     conn.close()
 
 
 
-# salva la foto iniziale della sfida
 
 def add_challenge(
-    creator_id,
-    photo_id
+    user_id,
+    photo
 ):
 
     conn = connect()
     cur = conn.cursor()
+
 
     cur.execute(
         """
@@ -58,22 +62,23 @@ def add_challenge(
         VALUES (?,?)
         """,
         (
-            creator_id,
-            photo_id
+            user_id,
+            photo
         )
     )
+
 
     conn.commit()
     conn.close()
 
 
 
-# cerca una sfida disponibile
 
 def find_challenge(user_id):
 
     conn = connect()
     cur = conn.cursor()
+
 
     cur.execute(
         """
@@ -90,6 +95,7 @@ def find_challenge(user_id):
         ORDER BY RANDOM()
 
         LIMIT 1
+
         """,
         (user_id,)
     )
@@ -97,21 +103,23 @@ def find_challenge(user_id):
 
     result = cur.fetchone()
 
+
     conn.close()
 
     return result
 
 
 
-# assegna la sfida a un utente
+
 
 def assign_challenge(
     challenge_id,
-    challenger_id
+    user_id
 ):
 
     conn = connect()
     cur = conn.cursor()
+
 
     cur.execute(
         """
@@ -124,21 +132,59 @@ def assign_challenge(
 
         """,
         (
-            challenger_id,
+            user_id,
             challenge_id
         )
     )
+
 
     conn.commit()
     conn.close()
 
 
 
-# salva la foto risposta
+
+def get_active_challenge(user_id):
+
+    conn = connect()
+    cur = conn.cursor()
+
+
+    cur.execute(
+        """
+        SELECT
+            id,
+            creator_id,
+            original_photo
+
+        FROM challenges
+
+        WHERE challenger_id=?
+        AND status='playing'
+
+        ORDER BY id DESC
+
+        LIMIT 1
+
+        """,
+        (user_id,)
+    )
+
+
+    result = cur.fetchone()
+
+
+    conn.close()
+
+    return result
+
+
+
+
 
 def save_reply(
-    user_id,
-    photo_id
+    challenge_id,
+    photo
 ):
 
     conn = connect()
@@ -152,56 +198,15 @@ def save_reply(
         SET reply_photo=?,
             status='completed'
 
-        WHERE challenger_id=?
+        WHERE id=?
 
         """,
         (
-            photo_id,
-            user_id
+            photo,
+            challenge_id
         )
     )
 
 
     conn.commit()
     conn.close()
-
-
-
-# recupera la sfida completa
-
-def get_completed(
-    user_id
-):
-
-    conn = connect()
-    cur = conn.cursor()
-
-
-    cur.execute(
-        """
-        SELECT
-
-        creator_id,
-        original_photo,
-        reply_photo
-
-        FROM challenges
-
-        WHERE challenger_id=?
-
-        AND status='completed'
-
-        ORDER BY id DESC
-
-        LIMIT 1
-
-        """,
-        (user_id,)
-    )
-
-
-    result = cur.fetchone()
-
-    conn.close()
-
-    return result
