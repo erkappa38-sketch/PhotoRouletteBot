@@ -1,6 +1,8 @@
 import os
 
+
 from telegram import Update
+
 from telegram.ext import (
     Application,
     CommandHandler,
@@ -9,76 +11,92 @@ from telegram.ext import (
     filters
 )
 
+
 from database import (
     init_db,
     add_challenge,
     find_challenge,
     assign_challenge,
-    save_reply,
-    get_completed
+    get_active_challenge,
+    save_reply
 )
+
 
 
 TOKEN = os.getenv("BOT_TOKEN")
 
 
+
+
 TEXT = {
 
-    "it": {
-        "welcome":
-        "📸 Benvenuto su PhotoChallenge!\n\n"
-        "Invia una foto e qualcuno dovrà ricrearla con una foto dello schermo + mano ✋",
+"it": {
 
-        "challenge":
-        "🎯 PHOTO CHALLENGE!\n\n"
-        "Ricrea questa foto:\n\n"
-        "1️⃣ Aprila su un monitor o telefono\n"
-        "2️⃣ Fai una nuova foto\n"
-        "3️⃣ La tua mano deve essere visibile ✋",
-
-        "saved":
-        "📸 Foto ricevuta!\n"
-        "⏳ Sto cercando qualcuno per la challenge...",
-
-        "answer":
-        "🔥 Challenge completata!\n\n"
-        "Ecco la foto originale e la risposta:"
-    },
+"welcome":
+"📸 Benvenuto su PhotoChallenge!\n\n"
+"Manda una foto e qualcuno dovrà ricrearla con schermo + mano ✋",
 
 
-    "en": {
+"waiting":
+"📸 Foto ricevuta!\n"
+"⏳ Cerco qualcuno per la challenge...",
 
-        "welcome":
-        "📸 Welcome to PhotoChallenge!\n\n"
-        "Send a photo and someone must recreate it with a screen + hand ✋",
 
-        "challenge":
-        "🎯 PHOTO CHALLENGE!\n\n"
-        "Recreate this photo:\n\n"
-        "1️⃣ Open it on a screen\n"
-        "2️⃣ Take a new photo\n"
-        "3️⃣ Your hand must be visible ✋",
+"challenge":
+"🎯 PHOTO CHALLENGE\n\n"
+"Ricrea questa foto:\n\n"
+"1️⃣ Aprila su uno schermo\n"
+"2️⃣ Fai una nuova foto\n"
+"3️⃣ La mano deve essere visibile ✋",
 
-        "saved":
-        "📸 Photo received!\n"
-        "⏳ Searching for someone...",
 
-        "answer":
-        "🔥 Challenge completed!\n\n"
-        "Original photo and reply:"
-    }
+"done":
+"🔥 Challenge completata!"
+
+},
+
+
+"en": {
+
+"welcome":
+"📸 Welcome to PhotoChallenge!\n\n"
+"Send a photo and someone will recreate it with screen + hand ✋",
+
+
+"waiting":
+"📸 Photo received!\n"
+"⏳ Searching someone...",
+
+
+"challenge":
+"🎯 PHOTO CHALLENGE\n\n"
+"Recreate this photo:\n\n"
+"1️⃣ Open it on a screen\n"
+"2️⃣ Take a new photo\n"
+"3️⃣ Your hand must be visible ✋",
+
+
+"done":
+"🔥 Challenge completed!"
+
+}
+
 }
 
 
 
-def language(update):
 
-    code = update.effective_user.language_code or "en"
+def get_lang(update):
 
-    if code.startswith("it"):
+    lang = update.effective_user.language_code or "en"
+
+    if lang.startswith("it"):
         return "it"
 
     return "en"
+
+
+
 
 
 
@@ -88,11 +106,14 @@ async def start(
     context: ContextTypes.DEFAULT_TYPE
 ):
 
-    lang = language(update)
+    lang = get_lang(update)
+
 
     await update.message.reply_text(
         TEXT[lang]["welcome"]
     )
+
+
 
 
 
@@ -102,33 +123,34 @@ async def photo_handler(
     context: ContextTypes.DEFAULT_TYPE
 ):
 
+
     user_id = update.effective_chat.id
 
     photo = update.message.photo[-1].file_id
 
-    lang = language(update)
+    lang = get_lang(update)
 
 
 
-    # controllo se è una risposta ad una challenge
+    # controlla se deve rispondere a una challenge
 
-    completed = get_completed(user_id)
+    active = get_active_challenge(user_id)
 
 
-    if completed is not None:
+
+    if active:
+
+
+        challenge_id = active[0]
+
+        creator = active[1]
+
+        original = active[2]
+
 
         save_reply(
-            user_id,
+            challenge_id,
             photo
-        )
-
-        creator = completed[0]
-        original = completed[1]
-
-
-        await context.bot.send_message(
-            user_id,
-            "🔥 Foto ricevuta!"
         )
 
 
@@ -146,12 +168,18 @@ async def photo_handler(
         )
 
 
+        await update.message.reply_text(
+            TEXT[lang]["done"]
+        )
+
+
         return
 
 
 
 
-    # nuova challenge
+
+    # nuova foto
 
     add_challenge(
         user_id,
@@ -160,7 +188,7 @@ async def photo_handler(
 
 
     await update.message.reply_text(
-        TEXT[lang]["saved"]
+        TEXT[lang]["waiting"]
     )
 
 
@@ -176,8 +204,6 @@ async def photo_handler(
 
 
     challenge_id = challenge[0]
-
-    owner = challenge[1]
 
     original_photo = challenge[2]
 
@@ -195,6 +221,9 @@ async def photo_handler(
         original_photo,
         caption=TEXT[lang]["challenge"]
     )
+
+
+
 
 
 
