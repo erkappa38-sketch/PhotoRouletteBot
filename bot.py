@@ -1,5 +1,6 @@
 import os
 import asyncio
+waiting_photo = None
 from flask import Flask, request
 from telegram import Update
 from telegram.ext import Application, CommandHandler
@@ -12,6 +13,37 @@ app_web = Flask(__name__)
 
 telegram_app = Application.builder().token(TOKEN).build()
 
+from telegram.ext import MessageHandler, filters
+
+
+async def photo_handler(update: Update, context):
+    global waiting_photo
+
+    user_photo = update.message.photo[-1].file_id
+
+    if waiting_photo is None:
+        waiting_photo = user_photo
+        await update.message.reply_text(
+            "📸 Foto ricevuta!\nSto cercando un'altra persona..."
+        )
+    else:
+        other_photo = waiting_photo
+        waiting_photo = None
+
+        await update.message.reply_photo(
+            photo=other_photo,
+            caption="🎲 La tua foto dalla roulette!"
+        )
+
+        await update.message.reply_photo(
+            photo=user_photo,
+            caption="🎲 La tua foto dalla roulette!"
+        )
+
+
+telegram_app.add_handler(
+    MessageHandler(filters.PHOTO, photo_handler)
+)
 
 async def start(update: Update, context):
     await update.message.reply_text(
