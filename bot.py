@@ -22,64 +22,66 @@ from database import (
 )
 
 
+from collage import create_collage
+
+
 
 TOKEN = os.getenv("BOT_TOKEN")
 
 
 
-
 TEXT = {
 
-"it": {
+    "it": {
 
-"welcome":
-"📸 Benvenuto su PhotoChallenge!\n\n"
-"Manda una foto e qualcuno dovrà ricrearla con schermo + mano ✋",
-
-
-"waiting":
-"📸 Foto ricevuta!\n"
-"⏳ Cerco qualcuno per la challenge...",
+        "welcome":
+        "📸 Benvenuto su PhotoChallenge!\n\n"
+        "Invia una foto e qualcuno dovrà ricrearla con schermo + mano ✋",
 
 
-"challenge":
-"🎯 PHOTO CHALLENGE\n\n"
-"Ricrea questa foto:\n\n"
-"1️⃣ Aprila su uno schermo\n"
-"2️⃣ Fai una nuova foto\n"
-"3️⃣ La mano deve essere visibile ✋",
+        "waiting":
+        "📸 Foto ricevuta!\n"
+        "⏳ Sto cercando qualcuno...",
 
 
-"done":
-"🔥 Challenge completata!"
-
-},
-
-
-"en": {
-
-"welcome":
-"📸 Welcome to PhotoChallenge!\n\n"
-"Send a photo and someone will recreate it with screen + hand ✋",
+        "challenge":
+        "🎯 PHOTO CHALLENGE\n\n"
+        "Ricrea questa foto:\n\n"
+        "1️⃣ Aprila su un monitor o telefono\n"
+        "2️⃣ Fai una nuova foto\n"
+        "3️⃣ La tua mano deve essere visibile ✋",
 
 
-"waiting":
-"📸 Photo received!\n"
-"⏳ Searching someone...",
+        "done":
+        "🔥 Challenge completata!"
+
+    },
 
 
-"challenge":
-"🎯 PHOTO CHALLENGE\n\n"
-"Recreate this photo:\n\n"
-"1️⃣ Open it on a screen\n"
-"2️⃣ Take a new photo\n"
-"3️⃣ Your hand must be visible ✋",
+    "en": {
+
+        "welcome":
+        "📸 Welcome to PhotoChallenge!\n\n"
+        "Send a photo and someone will recreate it with screen + hand ✋",
 
 
-"done":
-"🔥 Challenge completed!"
+        "waiting":
+        "📸 Photo received!\n"
+        "⏳ Searching someone...",
 
-}
+
+        "challenge":
+        "🎯 PHOTO CHALLENGE\n\n"
+        "Recreate this photo:\n\n"
+        "1️⃣ Open it on a screen\n"
+        "2️⃣ Take a new photo\n"
+        "3️⃣ Your hand must be visible ✋",
+
+
+        "done":
+        "🔥 Challenge completed!"
+
+    }
 
 }
 
@@ -94,7 +96,6 @@ def get_lang(update):
         return "it"
 
     return "en"
-
 
 
 
@@ -118,6 +119,7 @@ async def start(
 
 
 
+
 async def photo_handler(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE
@@ -132,9 +134,11 @@ async def photo_handler(
 
 
 
-    # controlla se deve rispondere a una challenge
+    # controlla se l'utente deve rispondere
 
-    active = get_active_challenge(user_id)
+    active = get_active_challenge(
+        user_id
+    )
 
 
 
@@ -148,24 +152,36 @@ async def photo_handler(
         original = active[2]
 
 
+
+        # salva risposta
+
         save_reply(
             challenge_id,
             photo
         )
 
 
-        await context.bot.send_photo(
-            creator,
+
+        # crea collage
+
+        collage = await create_collage(
+            context.bot,
             original,
-            caption="📸 Foto originale"
+            photo
         )
 
+
+
+        # manda solo il collage al creatore
 
         await context.bot.send_photo(
-            creator,
-            photo,
-            caption="✋ Foto risposta"
+            chat_id=creator,
+            photo=collage,
+            caption=
+            "🔥 Photo Challenge completata!\n\n"
+            "📸 Originale + ✋ Risposta"
         )
+
 
 
         await update.message.reply_text(
@@ -179,12 +195,14 @@ async def photo_handler(
 
 
 
-    # nuova foto
+
+    # nuova sfida
 
     add_challenge(
         user_id,
         photo
     )
+
 
 
     await update.message.reply_text(
@@ -198,8 +216,11 @@ async def photo_handler(
     )
 
 
+
     if challenge is None:
+
         return
+
 
 
 
@@ -217,8 +238,8 @@ async def photo_handler(
 
 
     await context.bot.send_photo(
-        user_id,
-        original_photo,
+        chat_id=user_id,
+        photo=original_photo,
         caption=TEXT[lang]["challenge"]
     )
 
@@ -227,14 +248,18 @@ async def photo_handler(
 
 
 
+
 def create_bot():
 
+
     init_db()
+
 
 
     app = Application.builder().token(
         TOKEN
     ).build()
+
 
 
 
@@ -246,12 +271,14 @@ def create_bot():
     )
 
 
+
     app.add_handler(
         MessageHandler(
             filters.PHOTO,
             photo_handler
         )
     )
+
 
 
     return app
