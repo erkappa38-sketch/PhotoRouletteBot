@@ -3,8 +3,8 @@ import os
 from telegram import Update
 from telegram.ext import (
     Application,
-    MessageHandler,
     CommandHandler,
+    MessageHandler,
     ContextTypes,
     filters
 )
@@ -22,38 +22,19 @@ TOKEN = os.getenv("BOT_TOKEN")
 
 TEXT = {
     "it": {
-        "welcome":
-            "📸 Benvenuto su PhotoRoulette!\n\n"
-            "Invia una foto e verrà abbinata casualmente "
-            "con un'altra persona 🎲",
-
-        "received":
-            "📸 Foto ricevuta!\n"
-            "🎲 Cerco un abbinamento...",
-
-        "match":
-            "🎲 Ecco la foto del tuo abbinamento!"
+        "welcome": "📸 Benvenuto su PhotoRoulette!\n\nInvia una foto e cercherò un abbinamento casuale 🎲",
+        "waiting": "📸 Foto ricevuta!\n⏳ Aspetto un'altra persona...",
+        "match": "🎲 Ecco la foto del tuo abbinamento!"
     },
-
     "en": {
-        "welcome":
-            "📸 Welcome to PhotoRoulette!\n\n"
-            "Send a photo and it will be randomly matched "
-            "with another person 🎲",
-
-        "received":
-            "📸 Photo received!\n"
-            "🎲 Looking for a match...",
-
-        "match":
-            "🎲 Here's your roulette match!"
+        "welcome": "📸 Welcome to PhotoRoulette!\n\nSend a photo and I will find a random match 🎲",
+        "waiting": "📸 Photo received!\n⏳ Waiting for another person...",
+        "match": "🎲 Here's your match!"
     }
 }
 
 
-
 def get_lang(update):
-
     lang = update.effective_user.language_code or "en"
 
     if lang.startswith("it"):
@@ -75,41 +56,42 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
-    user_id = update.message.chat_id
+    user_id = update.effective_chat.id
 
-    photo = update.message.photo[-1].file_id
+    photo_id = update.message.photo[-1].file_id
 
     lang = get_lang(update)
 
 
-    # salva la foto nel database
+    # prima salvo la foto
     add_photo(
         user_id,
-        photo,
+        photo_id,
         lang
     )
 
 
-    await update.message.reply_text(
-        TEXT[lang]["received"]
-    )
-
-
-    # cerca qualcuno da abbinare
+    # cerco un'altra persona
     match = get_match(user_id)
 
 
-    if not match:
+    if match is None:
+
+        await update.message.reply_text(
+            TEXT[lang]["waiting"]
+        )
+
         return
 
 
-    photo_id = match[0]
+
+    database_id = match[0]
     other_user = match[1]
     other_photo = match[2]
     other_lang = match[3]
 
 
-    # manda le foto scambiate
+    # invio scambio
 
     await context.bot.send_photo(
         chat_id=user_id,
@@ -120,21 +102,19 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await context.bot.send_photo(
         chat_id=other_user,
-        photo=photo,
+        photo=photo_id,
         caption=TEXT[other_lang]["match"]
     )
 
 
-    # elimina entrambe dalla coda
-
-    delete_photo(photo_id)
+    # elimino la foto dell'altro utente
+    delete_photo(database_id)
 
 
 
 def create_bot():
 
     init_db()
-
 
     app = Application.builder().token(TOKEN).build()
 
