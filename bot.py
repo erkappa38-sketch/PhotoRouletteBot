@@ -5,7 +5,7 @@ from telegram import Update
 from telegram.ext import Application, CommandHandler
 
 TOKEN = os.getenv("BOT_TOKEN")
-WEBHOOK_URL = os.getenv("WEBHOOK_URL")
+WEBHOOK_URL = os.getenv("WEBHOOK_URL", "https://photoroulettebot.onrender.com")
 PORT = int(os.getenv("PORT", 10000))
 
 app_web = Flask(__name__)
