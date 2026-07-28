@@ -40,11 +40,7 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
 
 
-    # aggiunge alla coda
-    photo_queue.append({
-        "id": user_id,
-        "photo": photo_id
-    })
+  
 
 
     await update.message.reply_text(
