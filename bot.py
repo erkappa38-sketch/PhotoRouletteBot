@@ -1,9 +1,11 @@
 import os
+import asyncio
 from flask import Flask, request
 from telegram import Update
 from telegram.ext import Application, CommandHandler
 
 TOKEN = os.getenv("BOT_TOKEN")
+WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 PORT = int(os.getenv("PORT", 10000))
 
 app_web = Flask(__name__)
@@ -11,10 +13,10 @@ app_web = Flask(__name__)
 telegram_app = Application.builder().token(TOKEN).build()
 
 
-async def start(update, context):
+async def start(update: Update, context):
     await update.message.reply_text(
         "📸 Benvenuto su PhotoRoulette!\n\n"
-        "🎲 Roulette fotografica anonima in arrivo!"
+        "🎲 Il bot è online!"
     )
 
 
@@ -34,17 +36,17 @@ async def webhook():
     return "ok"
 
 
-if __name__ == "__main__":
-    import asyncio
-
-    asyncio.run(telegram_app.initialize())
-
-    webhook_url = os.getenv("WEBHOOK_URL")
-    asyncio.run(
-        telegram_app.bot.set_webhook(
-            webhook_url + "/webhook"
-        )
+async def setup():
+    await telegram_app.initialize()
+    await telegram_app.bot.delete_webhook()
+    await telegram_app.bot.set_webhook(
+        WEBHOOK_URL + "/webhook"
     )
+    print("Webhook impostato:", WEBHOOK_URL + "/webhook")
+
+
+if __name__ == "__main__":
+    asyncio.run(setup())
 
     app_web.run(
         host="0.0.0.0",
