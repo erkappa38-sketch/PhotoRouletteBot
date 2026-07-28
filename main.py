@@ -30,7 +30,7 @@ def home():
 
 
 @app_web.route("/webhook", methods=["POST"])
-async def webhook():
+def webhook():
 
     data = request.get_json(force=True)
 
@@ -39,11 +39,9 @@ async def webhook():
         telegram_app.bot
     )
 
-
-    await telegram_app.process_update(
-        update
+    asyncio.run(
+        telegram_app.process_update(update)
     )
-
 
     return "ok"
 
