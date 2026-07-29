@@ -40,9 +40,9 @@ TOKEN = os.getenv("BOT_TOKEN")
 async def start(update, context):
 
     await update.message.reply_text(
-        "📸 Benvenuto su PhotoChallenge!\n\n"
-        "Invia una foto per iniziare.\n\n"
-        "/gallery per vedere le challenge 🔥"
+        "📸 Welcome to PhotoChallenge!\n\n"
+        "Send a photo to start.\n\n"
+        "/gallery to see the challenges 🔥"
     )
 
 
@@ -60,7 +60,7 @@ async def gallery(update, context):
     if not photos:
 
         await update.message.reply_text(
-            "📭 Nessuna challenge ancora."
+            "📭 No challenges yet."
         )
 
         return
@@ -128,7 +128,7 @@ async def photo_handler(update, context):
         message = await context.bot.send_photo(
             creator,
             collage,
-            caption="🔥 Challenge completata!"
+            caption="🔥 Challenge completed!"
         )
 
 
@@ -140,7 +140,7 @@ async def photo_handler(update, context):
 
 
         await update.message.reply_text(
-            "✅ Risposta inviata!"
+            "✅ Reply sent!"
         )
 
 
@@ -161,8 +161,8 @@ async def photo_handler(update, context):
 
 
     await update.message.reply_text(
-        "📸 Foto ricevuta!\n"
-        "⏳ Cerco qualcuno..."
+        "📸 Photo received!\n"
+        "⏳ Looking for someone..."
     )
 
 
@@ -190,10 +190,10 @@ async def photo_handler(update, context):
         user_id,
         challenge[2],
         caption=
-        "🎯 Ricrea questa foto:\n\n"
-        "1️⃣ Aprila su uno schermo\n"
-        "2️⃣ Rifai la foto\n"
-        "3️⃣ La mano deve essere visibile ✋"
+        "🎯 Recreate this photo:\n\n"
+        "1️⃣ Open it on a screen\n"
+        "2️⃣ Take the photo again\n"
+        "3️⃣ Your cock must be visible ✋"
     )
 
 
