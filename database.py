@@ -1,13 +1,14 @@
-import sqlite3
+import os
+import psycopg2
 
 
-DB = "photos.db"
-
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 
 def connect():
-    return sqlite3.connect(DB)
-
+    return psycopg2.connect(
+        DATABASE_URL
+    )
 
 
 
@@ -20,13 +21,13 @@ def init_db():
     cur.execute("""
     CREATE TABLE IF NOT EXISTS challenges (
 
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id SERIAL PRIMARY KEY,
 
-        creator_id INTEGER NOT NULL,
+        creator_id BIGINT NOT NULL,
 
         original_photo TEXT NOT NULL,
 
-        challenger_id INTEGER,
+        challenger_id BIGINT,
 
         reply_photo TEXT,
 
@@ -36,10 +37,11 @@ def init_db():
     """)
 
 
+
     cur.execute("""
     CREATE TABLE IF NOT EXISTS gallery (
 
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id SERIAL PRIMARY KEY,
 
         collage_photo TEXT NOT NULL
 
@@ -47,7 +49,9 @@ def init_db():
     """)
 
 
+
     conn.commit()
+    cur.close()
     conn.close()
 
 
@@ -59,7 +63,6 @@ def add_challenge(user_id, photo):
     conn = connect()
     cur = conn.cursor()
 
-
     cur.execute(
         """
         INSERT INTO challenges
@@ -68,8 +71,7 @@ def add_challenge(user_id, photo):
             original_photo
         )
 
-        VALUES (?,?)
-
+        VALUES (%s,%s)
         """,
         (
             user_id,
@@ -77,8 +79,8 @@ def add_challenge(user_id, photo):
         )
     )
 
-
     conn.commit()
+    cur.close()
     conn.close()
 
 
@@ -94,19 +96,18 @@ def find_challenge(user_id):
     cur.execute(
         """
         SELECT
-            id,
-            creator_id,
-            original_photo
+        id,
+        creator_id,
+        original_photo
 
         FROM challenges
 
         WHERE status='waiting'
-        AND creator_id != ?
+        AND creator_id != %s
 
         ORDER BY RANDOM()
 
         LIMIT 1
-
         """,
         (user_id,)
     )
@@ -114,7 +115,7 @@ def find_challenge(user_id):
 
     result = cur.fetchone()
 
-
+    cur.close()
     conn.close()
 
     return result
@@ -123,7 +124,7 @@ def find_challenge(user_id):
 
 
 
-def assign_challenge(challenge_id, user_id):
+def assign_challenge(challenge_id,user_id):
 
     conn = connect()
     cur = conn.cursor()
@@ -133,11 +134,10 @@ def assign_challenge(challenge_id, user_id):
         """
         UPDATE challenges
 
-        SET challenger_id=?,
+        SET challenger_id=%s,
             status='playing'
 
-        WHERE id=?
-
+        WHERE id=%s
         """,
         (
             user_id,
@@ -147,6 +147,8 @@ def assign_challenge(challenge_id, user_id):
 
 
     conn.commit()
+
+    cur.close()
     conn.close()
 
 
@@ -162,19 +164,16 @@ def get_active_challenge(user_id):
     cur.execute(
         """
         SELECT
-
-            id,
-            creator_id,
-            original_photo
+        id,
+        creator_id,
+        original_photo
 
         FROM challenges
 
-        WHERE challenger_id=?
-
+        WHERE challenger_id=%s
         AND status='playing'
 
         LIMIT 1
-
         """,
         (user_id,)
     )
@@ -182,7 +181,7 @@ def get_active_challenge(user_id):
 
     result = cur.fetchone()
 
-
+    cur.close()
     conn.close()
 
     return result
@@ -191,7 +190,7 @@ def get_active_challenge(user_id):
 
 
 
-def save_reply(challenge_id, photo):
+def save_reply(challenge_id,photo):
 
     conn = connect()
     cur = conn.cursor()
@@ -201,11 +200,10 @@ def save_reply(challenge_id, photo):
         """
         UPDATE challenges
 
-        SET reply_photo=?,
+        SET reply_photo=%s,
             status='completed'
 
-        WHERE id=?
-
+        WHERE id=%s
         """,
         (
             photo,
@@ -215,6 +213,8 @@ def save_reply(challenge_id, photo):
 
 
     conn.commit()
+
+    cur.close()
     conn.close()
 
 
@@ -231,17 +231,18 @@ def add_to_gallery(photo):
         """
         INSERT INTO gallery
         (
-            collage_photo
+        collage_photo
         )
 
-        VALUES (?)
-
+        VALUES (%s)
         """,
         (photo,)
     )
 
 
     conn.commit()
+
+    cur.close()
     conn.close()
 
 
@@ -262,8 +263,7 @@ def get_gallery():
 
         ORDER BY id DESC
 
-        LIMIT 10
-
+        LIMIT 50
         """
     )
 
@@ -271,6 +271,7 @@ def get_gallery():
     result = cur.fetchall()
 
 
+    cur.close()
     conn.close()
 
     return result
