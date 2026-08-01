@@ -263,7 +263,7 @@ def get_gallery():
 
         ORDER BY id DESC
 
-        LIMIT 50
+        LIMIT 10
         """
     )
 
